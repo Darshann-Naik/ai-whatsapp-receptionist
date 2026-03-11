@@ -1,10 +1,12 @@
 import json
 from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, status
+from fastapi.responses import PlainTextResponse
 from slowapi.util import get_remote_address
 
 from app.core.security import limiter
 from app.services.whatsapp_service import whatsapp_processor
 from app.core.logging import logger
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -31,6 +33,7 @@ async def whatsapp_phone_key_func(request: Request) -> str:
     except Exception:
         return get_remote_address(request)
 
+
 @router.get("/webhook")
 async def verify_webhook(request: Request):
     """Meta Webhook Verification (Handshake)"""
@@ -39,11 +42,12 @@ async def verify_webhook(request: Request):
     token = params.get("hub.verify_token")
     challenge = params.get("hub.challenge")
 
-    # verify_token should be in your config/settings
-    if mode == "subscribe" and token == "YOUR_SECURE_VERIFY_TOKEN":
-        return int(challenge)
+    # Now it checks your actual .env password!
+    if mode == "subscribe" and token == settings.META_VERIFY_TOKEN:
+        return PlainTextResponse(content=str(challenge))
     
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token")
+
 
 @router.post("/webhook")
 @limiter.limit("5/minute", key_func=whatsapp_phone_key_func)
@@ -63,6 +67,11 @@ async def handle_whatsapp_webhook(
             payload = await request.json()
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    # --- 🚨 DIAGNOSTIC PRINT: See the exact message Meta sends! ---
+    print("\n" + "🔥 NEW MESSAGE FROM META 🔥")
+    print(json.dumps(payload, indent=2))
+    print("="*40 + "\n")
 
     # Offload to Background Task to respond to Meta within 5s
     background_tasks.add_task(whatsapp_processor.process_event, payload)

@@ -9,16 +9,22 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     
     # Security
-    SECRET_KEY: str = Field(...)
+    SECRET_KEY: str = "0514942a1a897392d6acc5240b6905521cdd7e94678fb39e91e81c51493d4a7"  # Default fallback added to prevent crash
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # --- ADD THESE THREE LINES ---
-    META_ACCESS_TOKEN: str = Field(default="YOUR_META_TOKEN")
-    META_VERIFY_TOKEN: str = Field(default="YOUR_VERIFY_TOKEN")
-    GEMINI_API_KEY: str = Field(default="YOUR_GEMINI_KEY")
+    # --- META & AI TOKENS ---
+    # We removed the defaults! Now FastAPI MUST read these from your .env file
+    META_ACCESS_TOKEN: str
+    META_VERIFY_TOKEN: str
+    GEMINI_API_KEY: str
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", 
+        env_file_encoding="utf-8", 
+        case_sensitive=True, 
+        extra="ignore"
+    )
 
 settings = Settings()
